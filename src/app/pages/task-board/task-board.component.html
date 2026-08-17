@@ -1,0 +1,9 @@
+<div class="board">
+  <div *ngFor="let task of tasks" class="card">
+    <h4>{{ task.title }}</h4>
+    <p>Priority: {{ task.priority }}</p>
+
+    <button (click)="updateStatus(task, 2)">In Progress</button>
+    <button (click)="updateStatus(task, 4)">Done</button>
+  </div>
+</div>

@@ -1,0 +1,196 @@
+<!-- <table>
+  <tr>
+    <th>Title</th>
+    <th>Status</th>
+    <th>Priority</th>
+    <th>Due Date</th>
+  </tr>
+
+  <tr *ngFor="let task of tasks">
+    <td>{{ task.title }}</td>
+    <td>{{ task.status }}</td>
+    <td>{{ task.priority }}</td>
+    <td>{{ task.dueDate }}</td>
+  </tr>
+</table> -->
+
+
+
+
+<div class="tasks-page">
+      <div class="page-header">
+        <div>
+          <h1>Tasks</h1>
+          <p class="subtitle">Manage and organize your tasks efficiently</p>
+        </div>
+        <button class="btn-primary" routerLink="/tasks/new">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          New Task
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="search-box-large">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <input 
+            type="text" 
+            placeholder="Search tasks..." 
+            [(ngModel)]="searchTerm"
+            (input)="applyFilters()" />
+        </div>
+
+        <div class="filter-chips">
+          <div class="filter-group">
+            <label>Status:</label>
+            <button 
+              *ngFor="let status of statusOptions"
+              class="chip"
+              [class.active]="isStatusSelected(status.value)"
+              (click)="toggleStatusFilter(status.value)">
+              {{ status.label }}
+            </button>
+          </div>
+
+          <div class="filter-group">
+            <label>Priority:</label>
+            <button 
+              *ngFor="let priority of priorityOptions"
+              class="chip"
+              [class.active]="isPrioritySelected(priority.value)"
+              (click)="togglePriorityFilter(priority.value)">
+              {{ priority.label }}
+            </button>
+          </div>
+
+          <button class="btn-ghost" (click)="clearFilters()" *ngIf="hasActiveFilters()">
+            Clear filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Tasks Grid -->
+      <div class="tasks-container">
+        <div class="view-controls">
+          <div class="sort-controls">
+            <label>Sort by:</label>
+            <select [(ngModel)]="sortBy" (change)="sortTasks()">
+              <option value="createdAt">Created Date</option>
+              <option value="deadline">Deadline</option>
+              <option value="priority">Priority</option>
+              <option value="title">Title</option>
+            </select>
+          </div>
+
+          <div class="view-toggle">
+            <button 
+              class="view-btn"
+              [class.active]="viewMode === 'grid'"
+              (click)="viewMode = 'grid'">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </button>
+            <button 
+              class="view-btn"
+              [class.active]="viewMode === 'list'"
+              (click)="viewMode = 'list'">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="loading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading tasks...</p>
+        </div>
+
+        <div *ngIf="!loading && filteredTasks.length === 0" class="empty-state">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+          </svg>
+          <h3>No tasks found</h3>
+          <p>{{ hasActiveFilters() ? 'Try adjusting your filters' : 'Create your first task to get started' }}</p>
+          <button class="btn-primary" routerLink="/tasks/new" *ngIf="!hasActiveFilters()">
+            Create Task
+          </button>
+        </div>
+
+        <div *ngIf="!loading && filteredTasks.length > 0" [class]="'tasks-' + viewMode">
+          <div *ngFor="let task of filteredTasks" class="task-card">
+            <div class="task-card-header">
+              <h3>{{ task.title }}</h3>
+              <div class="task-actions">
+                <button class="icon-btn" [routerLink]="['/tasks', task.id, 'edit']" title="Edit">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </button>
+                <button class="icon-btn" (click)="deleteTask(task.id)" title="Delete">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <p class="task-description">{{ task.description }}</p>
+
+            <div class="task-badges">
+              <span [class]="'priority-badge priority-' + getPriorityClass(task.priority)">
+                {{ getPriorityLabel(task.priority) }}
+              </span>
+              <span [class]="'status-badge status-' + getStatusClass(task.status)">
+                {{ getStatusLabel(task.status) }}
+              </span>
+            </div>
+
+            <div class="task-meta">
+              <span class="meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                {{ task.estimatedDuration }} min
+              </span>
+              <span class="meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                {{ formatDate(task.deadline) }}
+              </span>
+            </div>
+
+            <div class="task-tags" *ngIf="task.tags && task.tags.length > 0">
+              <span *ngFor="let tag of task.tags" class="tag">{{ tag }}</span>
+            </div>
+
+            <div class="progress-bar" *ngIf="task.status === TaskStatus.InProgress">
+              <div class="progress-fill" [style.width.%]="task.progress || 0"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

@@ -1,0 +1,93 @@
+<div class="analytics-page">
+      <div class="page-header">
+        <h1>Analytics</h1>
+        <p class="subtitle">Track your productivity and task completion insights</p>
+      </div>
+
+      <div *ngIf="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Loading analytics...</p>
+      </div>
+
+      <div *ngIf="!loading && statistics" class="analytics-content">
+        <div class="stats-overview">
+          <div class="stat-card">
+            <div class="stat-icon blue">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <div>
+              <p class="stat-label">Total Tasks</p>
+              <h3 class="stat-value">{{ statistics.total }}</h3>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div>
+              <p class="stat-label">Completed</p>
+              <h3 class="stat-value">{{ statistics.completed }}</h3>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon orange">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div>
+              <p class="stat-label">Completion Rate</p>
+              <h3 class="stat-value">{{ statistics.completionRate.toFixed(1) }}%</h3>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon purple">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20v-6M6 20V10M18 20V4"></path>
+              </svg>
+            </div>
+            <div>
+              <p class="stat-label">Avg Duration</p>
+              <h3 class="stat-value">{{ statistics.averageDuration }} min</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="card">
+            <h2>Tasks by Status</h2>
+            <div class="chart">
+              <div *ngFor="let item of statusChartData" class="chart-item">
+                <div class="chart-label">{{ item.label }}</div>
+                <div class="chart-bar-container">
+                  <div class="chart-bar" [class]="'status-' + item.class" [style.width.%]="item.percentage"></div>
+                </div>
+                <div class="chart-value">{{ item.count }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Tasks by Priority</h2>
+            <div class="chart">
+              <div *ngFor="let item of priorityChartData" class="chart-item">
+                <div class="chart-label">{{ item.label }}</div>
+                <div class="chart-bar-container">
+                  <div class="chart-bar" [class]="'priority-' + item.class" [style.width.%]="item.percentage"></div>
+                </div>
+                <div class="chart-value">{{ item.count }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

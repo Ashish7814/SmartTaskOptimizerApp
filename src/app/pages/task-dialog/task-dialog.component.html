@@ -1,0 +1,198 @@
+<!-- <form [formGroup]="form">
+  <input placeholder="Title" formControlName="title" />
+  <input type="date" formControlName="dueDate" />
+  <input type="number" placeholder="Estimated Hours" formControlName="estimatedHours" />
+
+  <button type="button" (click)="save()">Save</button>
+</form> -->
+
+
+
+<div class="task-form-page">
+      <div class="form-container">
+        <div class="form-header">
+          <h1>{{ isEditMode ? 'Edit Task' : 'Create New Task' }}</h1>
+          <button class="btn-ghost" (click)="goBack()">Cancel</button>
+        </div>
+
+        <form (ngSubmit)="onSubmit()" #taskForm="ngForm">
+          <div class="form-section">
+            <h2>Basic Information</h2>
+            
+            <div class="form-group">
+              <label for="title">Task Title <span class="required">*</span></label>
+              <input 
+                type="text" 
+                id="title"
+                name="title"
+                [(ngModel)]="formData.title" 
+                required
+                placeholder="Enter task title"
+                class="form-input" />
+            </div>
+
+            <div class="form-group">
+              <label for="description">Description <span class="required">*</span></label>
+              <textarea 
+                id="description"
+                name="description"
+                [(ngModel)]="formData.description" 
+                required
+                rows="4"
+                placeholder="Describe your task..."
+                class="form-input"></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="category">Category</label>
+                <input 
+                  type="text" 
+                  id="category"
+                  name="category"
+                  [(ngModel)]="formData.category" 
+                  placeholder="e.g., Work, Personal"
+                  class="form-input" />
+              </div>
+
+              <div class="form-group">
+                <label for="estimatedDuration">Estimated Duration (minutes) <span class="required">*</span></label>
+                <input 
+                  type="number" 
+                  id="estimatedDuration"
+                  name="estimatedDuration"
+                  [(ngModel)]="formData.estimatedDuration" 
+                  required
+                  min="1"
+                  placeholder="30"
+                  class="form-input" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h2>Priority & Status</h2>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="priority">Priority <span class="required">*</span></label>
+                <select 
+                  id="priority"
+                  name="priority"
+                  [(ngModel)]="formData.priority" 
+                  required
+                  class="form-input">
+                  <option [value]="Priority.Low">Low</option>
+                  <option [value]="Priority.Medium">Medium</option>
+                  <option [value]="Priority.High">High</option>
+                  <option [value]="Priority.Critical">Critical</option>
+                </select>
+              </div>
+
+              <div class="form-group" *ngIf="isEditMode">
+                <label for="status">Status</label>
+                <select 
+                  id="status"
+                  name="status"
+                  [(ngModel)]="formData.status" 
+                  class="form-input">
+                  <option [value]="TaskStatus.Pending">Pending</option>
+                  <option [value]="TaskStatus.InProgress">In Progress</option>
+                  <option [value]="TaskStatus.Completed">Completed</option>
+                  <option [value]="TaskStatus.OnHold">On Hold</option>
+                  <option [value]="TaskStatus.Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="deadline">Deadline <span class="required">*</span></label>
+              <input 
+                type="datetime-local" 
+                id="deadline"
+                name="deadline"
+                [(ngModel)]="formData.deadline" 
+                required
+                class="form-input" />
+            </div>
+
+            <div class="form-group" *ngIf="isEditMode && formData.status === TaskStatus.InProgress">
+              <label for="progress">Progress (%)</label>
+              <div class="progress-input">
+                <input 
+                  type="range" 
+                  id="progress"
+                  name="progress"
+                  [(ngModel)]="formData.progress" 
+                  min="0"
+                  max="100"
+                  class="range-input" />
+                <span class="progress-value">{{ formData.progress }}%</span>
+              </div>
+              <div class="progress-bar-preview">
+                <div class="progress-fill" [style.width.%]="formData.progress"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h2>Additional Details</h2>
+            
+            <div class="form-group">
+              <label for="tags">Tags</label>
+              <div class="tags-input-container">
+                <div class="tags-list" *ngIf="formData.tags && formData.tags.length > 0">
+                  <span *ngFor="let tag of formData.tags; let i = index" class="tag">
+                    {{ tag }}
+                    <button type="button" (click)="removeTag(i)" class="tag-remove">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+                <input 
+                  type="text" 
+                  [(ngModel)]="newTag"
+                  name="newTag"
+                  (keydown.enter)="addTag($event)"
+                  placeholder="Type a tag and press Enter"
+                  class="form-input" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="dependencies">Dependencies (Task IDs)</label>
+              <input 
+                type="text" 
+                id="dependencies"
+                name="dependencies"
+                [(ngModel)]="dependenciesInput"
+                placeholder="Comma-separated task IDs"
+                class="form-input" />
+              <p class="field-hint">Enter task IDs that must be completed before this task</p>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="goBack()">
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              class="btn-primary"
+              [disabled]="!taskForm.form.valid || saving">
+              <span *ngIf="!saving">{{ isEditMode ? 'Update Task' : 'Create Task' }}</span>
+              <span *ngIf="saving">
+                <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"></circle>
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4"></path>
+                </svg>
+                Saving...
+              </span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>

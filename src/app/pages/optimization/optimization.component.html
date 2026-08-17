@@ -1,0 +1,102 @@
+<div class="optimization-page">
+      <div class="page-header">
+        <div>
+          <h1>Task Optimization</h1>
+          <p class="subtitle">Optimize your task schedule with AI-powered algorithms</p>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <!-- Task Selection -->
+        <div class="card">
+          <h2>Select Tasks to Optimize</h2>
+          <p class="card-description">Choose the tasks you want to include in the optimization</p>
+          
+          <div class="task-selection">
+            <div class="select-all">
+              <input 
+                type="checkbox"
+                id="selectAll"
+                [(ngModel)]="selectAll"
+                (change)="toggleSelectAll()"
+                class="checkbox" />
+              <label for="selectAll">Select All Tasks</label>
+            </div>
+
+            <div class="task-list">
+              <div *ngFor="let task of availableTasks" class="task-select-item">
+                <input 
+                  type="checkbox"
+                  [id]="'task-' + task.id"
+                  [(ngModel)]="task.selected"
+                  (change)="updateSelection()"
+                  class="checkbox" />
+                <label [for]="'task-' + task.id" class="task-label">
+                  <div class="task-info">
+                    <span class="task-title">{{ task.title }}</span>
+                    <div class="task-details">
+                      <span [class]="'priority-badge priority-' + getPriorityClass(task.priority)">
+                        {{ getPriorityLabel(task.priority) }}
+                      </span>
+                      <span class="duration">{{ task.estimatedDuration }} min</span>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <button 
+            class="btn-primary"
+            [disabled]="selectedTaskIds.length === 0 || optimizing"
+            (click)="optimizeTasks()">
+            <svg *ngIf="!optimizing" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <svg *ngIf="optimizing" class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"></circle>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4"></path>
+            </svg>
+            {{ optimizing ? 'Optimizing...' : 'Optimize Schedule' }} ({{ selectedTaskIds.length }} tasks)
+          </button>
+        </div>
+
+        <!-- Optimization Results -->
+        <div class="card" *ngIf="optimizationResult">
+          <h2>Optimized Schedule</h2>
+          <div class="optimization-stats">
+            <div class="stat">
+              <span class="stat-label">Total Duration</span>
+              <span class="stat-value">{{ optimizationResult.totalDuration }} min</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Efficiency Score</span>
+              <span class="stat-value">{{ (optimizationResult.efficiency * 100).toFixed(1) }}%</span>
+            </div>
+          </div>
+
+          <div class="scheduled-tasks">
+            <div *ngFor="let scheduledTask of optimizationResult.optimizedSchedule" class="scheduled-task">
+              <div class="task-order">{{ scheduledTask.order }}</div>
+              <div class="task-content">
+                <h4>{{ scheduledTask.task.title }}</h4>
+                <div class="task-time">
+                  {{ formatTime(scheduledTask.startTime) }} - {{ formatTime(scheduledTask.endTime) }}
+                </div>
+                <span [class]="'priority-badge priority-' + getPriorityClass(scheduledTask.task.priority)">
+                  {{ getPriorityLabel(scheduledTask.task.priority) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="suggestions" *ngIf="optimizationResult.suggestions.length > 0">
+            <h3>Suggestions</h3>
+            <ul>
+              <li *ngFor="let suggestion of optimizationResult.suggestions">{{ suggestion }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>

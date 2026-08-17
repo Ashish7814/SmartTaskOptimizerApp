@@ -1,0 +1,57 @@
+<aside class="sidebar" [class.open]="isOpen">
+      <div class="sidebar-overlay" (click)="closeSidebar.emit()" *ngIf="isOpen"></div>
+      
+      <nav class="sidebar-content">
+        <div class="nav-section">
+          <h3 class="nav-title">Main</h3>
+          <ul class="nav-list">
+            <li *ngFor="let item of mainNavItems">
+              <a 
+                [routerLink]="item.route" 
+                routerLinkActive="active"
+                class="nav-link"
+                (click)="onNavClick()">
+                <span [innerHTML]="item.icon"></span>
+                <span>{{ item.label }}</span>
+                <span class="badge" *ngIf="item.badge">{{ item.badge }}</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <h3 class="nav-title">Management</h3>
+          <ul class="nav-list">
+            <li *ngFor="let item of managementNavItems">
+              <a 
+                [routerLink]="item.route" 
+                routerLinkActive="active"
+                class="nav-link"
+                (click)="onNavClick()">
+                <span [innerHTML]="item.icon"></span>
+                <span>{{ item.label }}</span>
+                <span class="badge" *ngIf="item.badge">{{ item.badge }}</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="nav-section mt-auto">
+          <ul class="nav-list">
+            <li>
+              <a 
+                [routerLink]="'/settings'" 
+                routerLinkActive="active"
+                class="nav-link"
+                (click)="onNavClick()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3"></path>
+                </svg>
+                <span>Settings</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </aside>
