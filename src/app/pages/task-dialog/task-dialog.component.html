@@ -82,10 +82,10 @@
                   [(ngModel)]="formData.priority" 
                   required
                   class="form-input">
-                  <option [value]="Priority.Low">Low</option>
-                  <option [value]="Priority.Medium">Medium</option>
-                  <option [value]="Priority.High">High</option>
-                  <option [value]="Priority.Critical">Critical</option>
+                  <option [ngValue]="Priority.Low">Low</option>
+                  <option [ngValue]="Priority.Medium">Medium</option>
+                  <option [ngValue]="Priority.High">High</option>
+                  <option [ngValue]="Priority.Critical">Critical</option>
                 </select>
               </div>
 
@@ -96,11 +96,11 @@
                   name="status"
                   [(ngModel)]="formData.status" 
                   class="form-input">
-                  <option [value]="TaskStatus.Pending">Pending</option>
-                  <option [value]="TaskStatus.InProgress">In Progress</option>
-                  <option [value]="TaskStatus.Completed">Completed</option>
-                  <option [value]="TaskStatus.OnHold">On Hold</option>
-                  <option [value]="TaskStatus.Cancelled">Cancelled</option>
+                  <option [ngValue]="TaskStatus.Pending">Pending</option>
+                  <option [ngValue]="TaskStatus.InProgress">In Progress</option>
+                  <option [ngValue]="TaskStatus.Completed">Completed</option>
+                  <option [ngValue]="TaskStatus.OnHold">On Hold</option>
+                  <option [ngValue]="TaskStatus.Cancelled">Cancelled</option>
                 </select>
               </div>
             </div>

@@ -25,17 +25,18 @@
           <input type="text" placeholder="Search tasks..." />
         </div>
         
-        <button class="icon-btn" aria-label="Notifications">
+        <button class="icon-btn" aria-label="Notifications" (click)="markNotificationsRead()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 01-3.46 0"></path>
           </svg>
-          <span class="badge">3</span>
+          <span class="badge" *ngIf="unreadCount">{{ unreadCount }}</span>
         </button>
         
-        <div class="user-menu">
-          <img src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User avatar" />
-          <span class="user-name">User</span>
+        <div class="user-menu" *ngIf="session$ | async as session">
+          <img [src]="'https://ui-avatars.com/api/?name=' + session.fullName" alt="User avatar" />
+          <span class="user-name">{{ session.fullName }}</span>
+          <button type="button" class="icon-btn" (click)="logout()" aria-label="Sign out">Sign out</button>
         </div>
       </div>
     </header>

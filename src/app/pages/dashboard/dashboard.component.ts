@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { TaskService } from '../../core/services/task.service';
+import { DashboardService } from '../../core/services/dashboard.service';
 import { Priority, Task, TaskStatistics, TaskStatus } from '../../shared/models/task.model';
 
 @Component({
@@ -13,8 +14,9 @@ import { Priority, Task, TaskStatistics, TaskStatus } from '../../shared/models/
 })
 export class DashboardComponent {
   
-   constructor(private taskService: TaskService) {}
+   constructor(private taskService: TaskService, private dashboardService: DashboardService) {}
   statistics: TaskStatistics | null = null;
+  dashboardStats: import('../../shared/models/api.models').DashboardStats | null = null;
   recentTasks: Task[] = [];
   priorityData: any[] = [];
 
@@ -24,19 +26,20 @@ export class DashboardComponent {
   }
 
   loadStatistics() {
+    this.dashboardService.getStats().subscribe({
+      next: stats => this.dashboardStats = stats,
+      error: error => console.error('Error loading dashboard stats:', error)
+    });
     this.taskService.getStatistics().subscribe({
-      next: (stats) => {
-        this.statistics = stats;
-        this.updatePriorityData(stats);
-      },
-      error: (error) => console.error('Error loading statistics:', error)
+      next: stats => { this.statistics = stats; this.updatePriorityData(stats); },
+      error: error => console.error('Error loading task statistics:', error)
     });
   }
 
   loadRecentTasks() {
-    this.taskService.getTasks().subscribe({
-      next: (tasks) => {
-        this.recentTasks = tasks
+    this.taskService.getTasks({ page: 1, pageSize: 25, sortBy: 'createdAt', descending: true }).subscribe({
+      next: (result) => {
+        this.recentTasks = result.items
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, 5);
       },
@@ -90,7 +93,7 @@ export class DashboardComponent {
     return TaskStatus[status].toLowerCase();
   }
 
-  formatDate(date: Date): string {
+  formatDate(date: string | Date): string {
     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 }

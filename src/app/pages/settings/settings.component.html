@@ -1,67 +1,16 @@
 <div class="settings-page">
-      <h1>Settings</h1>
-      <p class="subtitle">Manage your preferences and application settings</p>
-
-      <div class="settings-sections">
-        <div class="card">
-          <h2>General</h2>
-          <div class="setting-item">
-            <div>
-              <h3>Theme</h3>
-              <p>Choose your preferred color scheme</p>
-            </div>
-            <select class="form-select">
-              <option>Light</option>
-              <option>Dark</option>
-              <option>System</option>
-            </select>
-          </div>
-          <div class="setting-item">
-            <div>
-              <h3>Language</h3>
-              <p>Select your language preference</p>
-            </div>
-            <select class="form-select">
-              <option>English</option>
-              <option>Spanish</option>
-              <option>French</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>Notifications</h2>
-          <div class="setting-item">
-            <div>
-              <h3>Task Reminders</h3>
-              <p>Receive reminders for upcoming deadlines</p>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" checked />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="setting-item">
-            <div>
-              <h3>Email Notifications</h3>
-              <p>Get email updates on task changes</p>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" />
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>API Configuration</h2>
-          <div class="setting-item full-width">
-            <div>
-              <h3>API Base URL</h3>
-              <p>Configure your backend API endpoint</p>
-            </div>
-            <input type="text" class="form-input" value="http://localhost:5000/api" />
-          </div>
-        </div>
-      </div>
+  <h1>Settings</h1><p class="subtitle">Manage your account and application settings</p>
+  <div *ngIf="message" class="success">{{ message }}</div><div *ngIf="error" class="error">{{ error }}</div>
+  <div class="settings-sections">
+    <div class="card"><h2>Profile</h2>
+      <div class="setting-item"><div><h3>Full name</h3><p>{{ profile?.email }}</p></div><input class="form-input" [(ngModel)]="fullName" maxlength="150"></div>
+      <button class="btn-primary" (click)="saveProfile()" [disabled]="loading || !fullName.trim()">Save profile</button>
     </div>
+    <div class="card"><h2>Password</h2>
+      <div class="setting-item full-width"><div><h3>Current password</h3></div><input type="password" class="form-input" [(ngModel)]="currentPassword"></div>
+      <div class="setting-item full-width"><div><h3>New password</h3><p>At least 8 characters with upper, lower and numeric characters.</p></div><input type="password" class="form-input" [(ngModel)]="newPassword" minlength="8"></div>
+      <button class="btn-primary" (click)="changePassword()" [disabled]="loading || !currentPassword || newPassword.length < 8">Change password</button>
+    </div>
+    <div class="card"><h2>Connection</h2><p>Backend API: <strong>{{ 'https://localhost:7115/api' }}</strong></p><p>SignalR: <strong>{{ 'https://localhost:7115/hubs/notifications' }}</strong></p></div>
+  </div>
+</div>

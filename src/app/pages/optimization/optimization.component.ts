@@ -26,9 +26,9 @@ export class OptimizationComponent {
   }
 
   loadTasks() {
-    this.taskService.getTasks().subscribe({
-      next: (tasks) => {
-        this.availableTasks = tasks.map(task => ({ ...task, selected: false }));
+    this.taskService.getTasks({ page: 1, pageSize: 100, includeCompleted: false }).subscribe({
+      next: (result) => {
+        this.availableTasks = result.items.map(task => ({ ...task, selected: false }));
       },
       error: (error) => console.error('Error loading tasks:', error)
     });
@@ -70,7 +70,7 @@ export class OptimizationComponent {
     return Priority[priority].toLowerCase();
   }
 
-  formatTime(date: Date): string {
+  formatTime(date: string | Date): string {
     return new Date(date).toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit' 

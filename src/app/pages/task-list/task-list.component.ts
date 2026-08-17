@@ -33,6 +33,9 @@ export class TaskListComponent implements OnInit {
   selectedStatuses: TaskStatus[] = [];
   selectedPriorities: Priority[] = [];
   sortBy = 'createdAt';
+  totalCount = 0;
+  page = 1;
+  pageSize = 100;
   viewMode: 'grid' | 'list' = 'grid';
   
   TaskStatus = TaskStatus;
@@ -58,9 +61,10 @@ export class TaskListComponent implements OnInit {
 
   loadTasks() {
     this.loading = true;
-    this.taskService.getTasks().subscribe({
-      next: (tasks) => {
-        this.tasks = tasks;
+    this.taskService.getTasks({ page: this.page, pageSize: this.pageSize, searchTerm: this.searchTerm || undefined, sortBy: this.sortBy === 'createdAt' ? 'createdAt' : this.sortBy, descending: this.sortBy !== 'deadline' }).subscribe({
+      next: (result) => {
+        this.tasks = result.items;
+        this.totalCount = result.totalCount;
         this.applyFilters();
         this.loading = false;
       },
@@ -79,7 +83,7 @@ export class TaskListComponent implements OnInit {
       const term = this.searchTerm.toLowerCase();
       filtered = filtered.filter(task => 
         task.title.toLowerCase().includes(term) ||
-        task.description.toLowerCase().includes(term) ||
+        (task.description ?? '').toLowerCase().includes(term) ||
         task.tags?.some(tag => tag.toLowerCase().includes(term))
       );
     }
@@ -180,7 +184,7 @@ export class TaskListComponent implements OnInit {
     return TaskStatus[status].toLowerCase();
   }
 
-  formatDate(date: Date): string {
+  formatDate(date: string | Date): string {
     return new Date(date).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric',

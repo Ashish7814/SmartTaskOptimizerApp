@@ -1,78 +1,102 @@
-// export interface Task {
-//      id: string;
-//   title: string;
-//   priority: number;
-//   status: number;
-//   dueDate: string;
-// }
-
-
-
 export enum Priority {
-  Low = 0,
-  Medium = 1,
-  High = 2,
-  Critical = 3
+  Low = 1,
+  Medium = 2,
+  High = 3,
+  Critical = 4
 }
 
 export enum TaskStatus {
-  Pending = 0,
-  InProgress = 1,
-  Completed = 2,
-  Cancelled = 3,
-  OnHold = 4
+  Pending = 1,
+  InProgress = 2,
+  Completed = 3,
+  Cancelled = 4,
+  OnHold = 5
 }
 
 export interface Task {
   id: string;
   title: string;
-  description: string;
+  description?: string | null;
   priority: Priority;
   status: TaskStatus;
-  estimatedDuration: number; // in minutes
-  deadline: Date;
-  dependencies: string[];
+  estimatedDurationMinutes: number;
+  deadline: string;
+  projectId?: string | null;
+  assigneeId?: string | null;
+  assigneeName?: string | null;
+  createdByUserId: string;
+  createdByName?: string | null;
+  category?: string | null;
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
   tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt?: Date;
-  assignedTo?: string;
-  category?: string;
-  progress?: number;
+  dependencyIds: string[];
+  rowVersion?: string | null;
+
+  // Compatibility helpers for the existing UI.
+  readonly estimatedDuration: number;
+  readonly dueDate: string;
+  readonly dependencies: string[];
 }
 
 export interface CreateTaskDto {
   title: string;
-  description: string;
+  description?: string | null;
   priority: Priority;
   estimatedDuration: number;
-  deadline: Date;
-  dependencies?: string[];
-  tags?: string[];
-  category?: string;
+  deadline: string;
+  projectId?: string | null;
+  assigneeId?: string | null;
+  category?: string | null;
+  tags: string[];
+  dependencyIds: string[];
 }
 
 export interface UpdateTaskDto {
   title?: string;
-  description?: string;
+  description?: string | null;
   priority?: Priority;
   status?: TaskStatus;
   estimatedDuration?: number;
-  deadline?: Date;
-  dependencies?: string[];
-  tags?: string[];
-  category?: string;
+  deadline?: string;
+  assigneeId?: string | null;
+  category?: string | null;
   progress?: number;
+  tags?: string[];
+  dependencyIds?: string[];
+  rowVersion?: string | null;
+}
+
+export interface TaskQuery {
+  projectId?: string;
+  status?: TaskStatus;
+  priority?: Priority;
+  assigneeId?: string;
+  search?: string;
+  category?: string;
+  tag?: string;
+  includeCompleted?: boolean;
+  sortBy?: string;
+  descending?: boolean;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface TaskFilter {
-  status?: TaskStatus[];
-  priority?: Priority[];
-  tags?: string[];
+  status?: TaskStatus;
+  priority?: Priority;
+  tag?: string;
   category?: string;
   searchTerm?: string;
-  startDate?: Date;
-  endDate?: Date;
+  projectId?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  descending?: boolean;
+  includeCompleted?: boolean;
 }
 
 export interface OptimizationResult {
@@ -84,8 +108,8 @@ export interface OptimizationResult {
 
 export interface ScheduledTask {
   task: Task;
-  startTime: Date;
-  endTime: Date;
+  startTime: string;
+  endTime: string;
   order: number;
 }
 
@@ -96,7 +120,7 @@ export interface TaskStatistics {
   pending: number;
   overdue: number;
   completionRate: number;
-  averageDuration: number;
-  byPriority: { [key in Priority]: number };
-  byStatus: { [key in TaskStatus]: number };
+  averageDurationMinutes: number;
+  byPriority: Record<number, number>;
+  byStatus: Record<number, number>;
 }

@@ -1,12 +1,10 @@
- <div class="app-container">
-      <app-header (toggleSidebar)="isSidebarOpen = !isSidebarOpen"></app-header>
-      <div class="main-layout">
-        <app-sidebar 
-          [isOpen]="isSidebarOpen" 
-          (closeSidebar)="isSidebarOpen = false">
-        </app-sidebar>
-        <main class="content" [class.sidebar-open]="isSidebarOpen">
-          <router-outlet></router-outlet>
-        </main>
-      </div>
+<ng-container *ngIf="isAuthenticated$ | async; else publicShell">
+  <div class="app-container">
+    <app-header (toggleSidebar)="isSidebarOpen = !isSidebarOpen"></app-header>
+    <div class="main-layout">
+      <app-sidebar [isOpen]="isSidebarOpen" (closeSidebar)="isSidebarOpen = false"></app-sidebar>
+      <main class="content" [class.sidebar-open]="isSidebarOpen"><router-outlet></router-outlet></main>
     </div>
+  </div>
+</ng-container>
+<ng-template #publicShell><router-outlet></router-outlet></ng-template>

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 
 import { TaskBoardComponent } from './task-board.component';
 
@@ -8,6 +9,7 @@ describe('TaskBoardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers: [provideHttpClient()],
       imports: [TaskBoardComponent]
     })
     .compileComponents();

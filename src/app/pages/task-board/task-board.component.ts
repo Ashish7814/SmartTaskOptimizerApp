@@ -16,7 +16,7 @@ export class TaskBoardComponent implements OnInit {
   constructor(private taskService: TaskService) {}
 
   ngOnInit(): void {
-    this.taskService.getTasks().subscribe(res => this.tasks = res);
+    this.taskService.getTasks({ page: 1, pageSize: 100 }).subscribe(res => this.tasks = res.items);
   }
 
   updateStatus(task: Task, status: number): void {

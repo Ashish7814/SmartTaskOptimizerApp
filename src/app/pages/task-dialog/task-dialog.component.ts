@@ -63,6 +63,9 @@ constructor(private taskService: TaskService, private router: Router, private ro
     category: '',
     tags: [],
     dependencies: [],
+    projectId: null,
+    assigneeId: null,
+    rowVersion: null,
     progress: 0
   };
 
@@ -88,12 +91,15 @@ constructor(private taskService: TaskService, private router: Router, private ro
           description: task.description,
           priority: task.priority,
           status: task.status,
-          estimatedDuration: task.estimatedDuration,
+          estimatedDuration: task.estimatedDurationMinutes,
           deadline: this.formatDateForInput(new Date(task.deadline)),
           category: task.category || '',
           tags: task.tags || [],
-          dependencies: task.dependencies || [],
-          progress: task.progress || 0
+          dependencies: task.dependencyIds || [],
+          progress: task.progress || 0,
+          projectId: task.projectId ?? null,
+          assigneeId: task.assigneeId ?? null,
+          rowVersion: task.rowVersion ?? null
         };
         this.dependenciesInput = task.dependencies?.join(', ') || '';
       },
@@ -113,11 +119,33 @@ constructor(private taskService: TaskService, private router: Router, private ro
       .map(id => id.trim())
       .filter(id => id.length > 0);
 
-    const taskData = {
-      ...this.formData,
-      deadline: new Date(this.formData.deadline),
-      dependencies
-    };
+    const taskData: CreateTaskDto | UpdateTaskDto = this.isEditMode
+      ? {
+          title: this.formData.title.trim(),
+          description: this.formData.description || null,
+          priority: Number(this.formData.priority),
+          status: Number(this.formData.status),
+          estimatedDuration: Number(this.formData.estimatedDuration),
+          deadline: new Date(this.formData.deadline).toISOString(),
+          assigneeId: this.formData.assigneeId || null,
+          category: this.formData.category || null,
+          progress: Number(this.formData.progress),
+          tags: this.formData.tags ?? [],
+          dependencyIds: dependencies,
+          rowVersion: this.formData.rowVersion ?? null
+        }
+      : {
+          title: this.formData.title.trim(),
+          description: this.formData.description || null,
+          priority: Number(this.formData.priority),
+          estimatedDuration: Number(this.formData.estimatedDuration),
+          deadline: new Date(this.formData.deadline).toISOString(),
+          projectId: this.formData.projectId || null,
+          assigneeId: this.formData.assigneeId || null,
+          category: this.formData.category || null,
+          tags: this.formData.tags ?? [],
+          dependencyIds: dependencies
+        };
 
     const operation = this.isEditMode && this.taskId
       ? this.taskService.updateTask(this.taskId, taskData as UpdateTaskDto)

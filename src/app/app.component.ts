@@ -1,25 +1,28 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, signal, PLATFORM_ID, inject } from '@angular/core';
+import { Component, PLATFORM_ID, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './shared/components/header/header.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
+import { AuthService } from './core/auth/auth.service';
+import { TaskHubService } from './core/signalr/task-hub.service';
 
 @Component({
-  selector: 'app-root',
-  imports: [RouterOutlet, CommonModule, HeaderComponent, SidebarComponent],
-  standalone: true,
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  selector: 'app-root', standalone: true, imports: [RouterOutlet, CommonModule, HeaderComponent, SidebarComponent],
+  templateUrl: './app.component.html', styleUrl: './app.component.css'
 })
 export class AppComponent {
-  
-  private platformId = inject(PLATFORM_ID);
+  private readonly platformId = inject(PLATFORM_ID);
+  readonly isAuthenticated$ = inject(AuthService).isAuthenticated$;
   isSidebarOpen = this.getInitialSidebarState();
 
-  private getInitialSidebarState(): boolean {
+  constructor(private readonly auth: AuthService, private readonly hub: TaskHubService) {
     if (isPlatformBrowser(this.platformId)) {
-      return window.innerWidth > 768;
+      this.auth.session$.subscribe(session => session ? this.hub.connect() : this.hub.disconnect());
     }
-    return true; // Default to open on server
+  }
+
+
+  private getInitialSidebarState(): boolean {
+    return isPlatformBrowser(this.platformId) ? window.innerWidth > 768 : true;
   }
 }

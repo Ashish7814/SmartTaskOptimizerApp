@@ -1,135 +1,92 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-// import { BehaviorSubject, catchError, Observable, throwError } from 'rxjs';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
-import { CreateTaskDto, OptimizationResult, Task, TaskFilter, TaskStatistics, UpdateTaskDto } from '../../shared/models/task.model';
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { PagedResult } from '../../shared/models/api.models';
+import { CreateTaskDto, OptimizationResult, Task, TaskFilter, TaskStatistics, UpdateTaskDto } from '../../shared/models/task.model';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class TaskService {
-  private readonly baseUrl = `${environment.apiUrl}`;
+  private readonly baseUrl = `${environment.apiUrl}/tasks`;
+  private readonly tasksSubject = new BehaviorSubject<Task[]>([]);
+  readonly tasks$ = this.tasksSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
-  // getTasks(): Observable<Task[]> {
-  //   return this.http.get<Task[]>(`${this.baseUrl}/getallTasks`).pipe(
-  //     catchError(error => {
-  //       console.error('Error fetching tasks:', error);
-  //       return throwError(() => new Error('Error fetching tasks: ' + error.message));
-  //     })
-  //   );
-  // }
-
-  // getTasks(): Observable<Task[]> {
-  //   try{
-  //     return this.http.get<Task[]>(`${this.baseUrl}/getallTasks`);
-  //   }
-  //   catch(error){
-  //     throw new Error('Error fetching tasks: ' + error);
-  //   } 
-  // }
-
-  // createTask(payload: any): Observable<string>{
-  //   try{
-  //     return this.http.post<string>(`${this.baseUrl}`, payload);
-  //   }
-  //   catch(error){
-  //     throw new Error('Error creating task: ' + error);
-  //   }
-  // }
-
-  // updateTask(id: string, payload: any): Observable<void>{
-  //   try{
-  //     return this.http.put<void>(`${this.baseUrl}/${id}`, payload);
-  //   }
-  //   catch(error){
-  //     throw new Error('Error updating task status: ' + error);
-  //   }
-  // }
-  
-  updateStatus(id: string, status: number): Observable<void>{
-    try{
-      return this.http.put<void>(`${this.baseUrl}/${id}/status?status=${status}`,  {});
-    }
-    catch(error){
-      throw new Error('Error updating task status: ' + error);
-    }
-  }
-
-  getTaskHistory(id: string): Observable<any>{
-    try{
-      return this.http.get<any>(`${this.baseUrl}/${id}/history`);
-    }
-    catch(error){
-      throw new Error('Error fetching task history: ' + error);
-    }
-  }
-
-
-   private tasksSubject = new BehaviorSubject<Task[]>([]);
-  public tasks$ = this.tasksSubject.asObservable();
-
-  getTasks(filter?: TaskFilter): Observable<Task[]> {
+  getTasks(filter: TaskFilter = {}): Observable<PagedResult<Task>> {
     let params = new HttpParams();
-    
-    if (filter) {
-      if (filter.status) {
-        params = params.append('status', filter.status.join(','));
-      }
-      if (filter.priority) {
-        params = params.append('priority', filter.priority.join(','));
-      }
-      if (filter.tags) {
-        params = params.append('tags', filter.tags.join(','));
-      }
-      if (filter.category) {
-        params = params.append('category', filter.category);
-      }
-      if (filter.searchTerm) {
-        params = params.append('search', filter.searchTerm);
-      }
-    }
+    const values: Record<string, string | number | boolean | undefined> = {
+      status: filter.status,
+      priority: filter.priority,
+      tag: filter.tag,
+      category: filter.category,
+      search: filter.searchTerm,
+      projectId: filter.projectId,
+      page: filter.page ?? 1,
+      pageSize: filter.pageSize ?? 25,
+      sortBy: this.toBackendSort(filter.sortBy),
+      descending: filter.descending ?? true,
+      includeCompleted: filter.includeCompleted ?? true
+    };
+    Object.entries(values).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params = params.set(key, String(value));
+    });
 
-    return this.http.get<Task[]>(this.baseUrl, { params }).pipe(
-      tap(tasks => this.tasksSubject.next(tasks))
+    return this.http.get<PagedResult<Task>>(this.baseUrl, { params }).pipe(
+      map(result => ({ ...result, items: result.items.map(task => this.normalizeTask(task)) })),
+      tap(result => this.tasksSubject.next(result.items))
     );
   }
 
   getTaskById(id: string): Observable<Task> {
-    return this.http.get<Task>(`${this.baseUrl}/${id}`);
+    return this.http.get<Task>(`${this.baseUrl}/${id}`).pipe(map(task => this.normalizeTask(task)));
   }
 
-  createTask(task: CreateTaskDto): Observable<Task> {
-    return this.http.post<Task>(this.baseUrl, task).pipe(
-      tap(() => this.refreshTasks())
-    );
+  createTask(task: CreateTaskDto): Observable<string> {
+    return this.http.post<string>(this.baseUrl, task).pipe(tap(() => this.refreshTasks()));
   }
 
-  updateTask(id: string, task: UpdateTaskDto): Observable<Task> {
-    return this.http.put<Task>(`${this.baseUrl}/${id}`, task).pipe(
-      tap(() => this.refreshTasks())
-    );
+  updateTask(id: string, task: UpdateTaskDto): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${id}`, task).pipe(tap(() => this.refreshTasks()));
+  }
+
+  updateStatus(id: string, status: number): Observable<void> {
+    const params = new HttpParams().set('status', status);
+    return this.http.put<void>(`${this.baseUrl}/${id}/status`, null, { params }).pipe(tap(() => this.refreshTasks()));
   }
 
   deleteTask(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(
-      tap(() => this.refreshTasks())
-    );
+    return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(tap(() => this.refreshTasks()));
   }
 
   optimizeTasks(taskIds: string[]): Observable<OptimizationResult> {
     return this.http.post<OptimizationResult>(`${this.baseUrl}/optimize`, { taskIds });
   }
 
-  getStatistics(): Observable<TaskStatistics> {
-    return this.http.get<TaskStatistics>(`${this.baseUrl}/statistics`);
+  getStatistics(projectId?: string): Observable<TaskStatistics> {
+    let params = new HttpParams();
+    if (projectId) params = params.set('projectId', projectId);
+    return this.http.get<TaskStatistics>(`${this.baseUrl}/statistics`, { params });
+  }
+
+  getTaskHistory(id: string) {
+    return this.http.get<import('../../shared/models/api.models').TaskHistory[]>(`${this.baseUrl}/${id}/history`);
+  }
+
+  private toBackendSort(sortBy?: string): string {
+    return ['title', 'deadline', 'priority', 'status', 'updatedAt'].includes(sortBy ?? '') ? sortBy! : 'updatedAt';
+  }
+
+  private normalizeTask(task: Task): Task {
+    return {
+      ...task,
+      estimatedDuration: task.estimatedDurationMinutes,
+      dueDate: task.deadline,
+      dependencies: task.dependencyIds ?? []
+    };
   }
 
   private refreshTasks(): void {
-    this.getTasks().subscribe();
+    this.getTasks({ page: 1, pageSize: 25 }).subscribe({ error: () => undefined });
   }
-
 }
