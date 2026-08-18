@@ -1,9 +1,56 @@
-<div class="board">
-  <div *ngFor="let task of tasks" class="card">
-    <h4>{{ task.title }}</h4>
-    <p>Priority: {{ task.priority }}</p>
+<div class="board-page">
+  <div class="page-header">
+    <div>
+      <h1>Board</h1>
+      <p class="subtitle">Drag-free Kanban view of every task grouped by status</p>
+    </div>
+    <button class="btn-primary" routerLink="/tasks/new">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      New Task
+    </button>
+  </div>
 
-    <button (click)="updateStatus(task, 2)">In Progress</button>
-    <button (click)="updateStatus(task, 4)">Done</button>
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading board…</p>
+  </div>
+
+  <div *ngIf="error" class="error-banner">
+    <span>{{ error }}</span>
+    <button type="button" class="btn-secondary" (click)="load()">Retry</button>
+  </div>
+
+  <div class="board" *ngIf="!loading && !error">
+    <div class="board-column" *ngFor="let column of columns">
+      <div class="board-column-header">
+        <app-status-badge [status]="column.status"></app-status-badge>
+        <span class="column-count">{{ column.tasks.length }}</span>
+      </div>
+
+      <div class="board-column-body">
+        <p class="empty-hint" *ngIf="column.tasks.length === 0">No tasks</p>
+
+        <div *ngFor="let task of column.tasks" class="board-card">
+          <a class="board-card-title" [routerLink]="['/tasks', task.id]">{{ task.title }}</a>
+          <div class="board-card-meta">
+            <app-priority-badge [priority]="task.priority"></app-priority-badge>
+            <app-avatar [name]="task.assigneeName" size="sm"></app-avatar>
+          </div>
+          <div class="board-card-actions" *ngIf="transitionsFor(task).length > 0">
+            <button
+              type="button"
+              class="btn-ghost move-btn"
+              *ngFor="let next of transitionsFor(task)"
+              [disabled]="updatingTaskId === task.id"
+              (click)="moveTask(task, next)">
+              → {{ statusLabel(next) }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

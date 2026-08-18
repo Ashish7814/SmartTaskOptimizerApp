@@ -37,7 +37,7 @@ export class DashboardComponent {
   }
 
   loadRecentTasks() {
-    this.taskService.getTasks({ page: 1, pageSize: 25, sortBy: 'createdAt', descending: true }).subscribe({
+    this.taskService.getTasks({ page: 1, pageSize: 25, sortBy: 'updatedAt', descending: true }).subscribe({
       next: (result) => {
         this.recentTasks = result.items
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

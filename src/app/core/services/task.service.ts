@@ -2,8 +2,19 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, map, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { PagedResult } from '../../shared/models/api.models';
-import { CreateTaskDto, OptimizationResult, Task, TaskFilter, TaskStatistics, UpdateTaskDto } from '../../shared/models/task.model';
+import { PagedResult, TaskHistory } from '../../shared/models/api.models';
+import {
+  CreateTaskDto,
+  Task,
+  TaskFilter,
+  TaskSortField,
+  TaskStatistics,
+  TaskStatus,
+  UpdateTaskDto
+} from '../../shared/models/task.model';
+import { OptimizationResult } from '../../shared/models/task.model';
+
+const VALID_SORT_FIELDS: readonly TaskSortField[] = ['title', 'deadline', 'priority', 'status', 'updatedAt'];
 
 @Injectable({ providedIn: 'root' })
 export class TaskService {
@@ -14,21 +25,23 @@ export class TaskService {
   constructor(private readonly http: HttpClient) {}
 
   getTasks(filter: TaskFilter = {}): Observable<PagedResult<Task>> {
-    let params = new HttpParams();
-    const values: Record<string, string | number | boolean | undefined> = {
+    let params = new HttpParams()
+      .set('page', String(filter.page ?? 1))
+      .set('pageSize', String(filter.pageSize ?? 25))
+      .set('sortBy', this.toBackendSort(filter.sortBy))
+      .set('descending', String(filter.descending ?? true))
+      .set('includeCompleted', String(filter.includeCompleted ?? true));
+
+    const optional: Record<string, string | number | undefined> = {
       status: filter.status,
       priority: filter.priority,
       tag: filter.tag,
       category: filter.category,
       search: filter.searchTerm,
       projectId: filter.projectId,
-      page: filter.page ?? 1,
-      pageSize: filter.pageSize ?? 25,
-      sortBy: this.toBackendSort(filter.sortBy),
-      descending: filter.descending ?? true,
-      includeCompleted: filter.includeCompleted ?? true
+      assigneeId: filter.assigneeId
     };
-    Object.entries(values).forEach(([key, value]) => {
+    Object.entries(optional).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') params = params.set(key, String(value));
     });
 
@@ -43,20 +56,20 @@ export class TaskService {
   }
 
   createTask(task: CreateTaskDto): Observable<string> {
-    return this.http.post<string>(this.baseUrl, task).pipe(tap(() => this.refreshTasks()));
+    return this.http.post<string>(this.baseUrl, task);
   }
 
   updateTask(id: string, task: UpdateTaskDto): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/${id}`, task).pipe(tap(() => this.refreshTasks()));
+    return this.http.put<void>(`${this.baseUrl}/${id}`, task);
   }
 
-  updateStatus(id: string, status: number): Observable<void> {
+  updateStatus(id: string, status: TaskStatus): Observable<void> {
     const params = new HttpParams().set('status', status);
-    return this.http.put<void>(`${this.baseUrl}/${id}/status`, null, { params }).pipe(tap(() => this.refreshTasks()));
+    return this.http.put<void>(`${this.baseUrl}/${id}/status`, null, { params });
   }
 
   deleteTask(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(tap(() => this.refreshTasks()));
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
   optimizeTasks(taskIds: string[]): Observable<OptimizationResult> {
@@ -69,12 +82,12 @@ export class TaskService {
     return this.http.get<TaskStatistics>(`${this.baseUrl}/statistics`, { params });
   }
 
-  getTaskHistory(id: string) {
-    return this.http.get<import('../../shared/models/api.models').TaskHistory[]>(`${this.baseUrl}/${id}/history`);
+  getTaskHistory(id: string): Observable<TaskHistory[]> {
+    return this.http.get<TaskHistory[]>(`${this.baseUrl}/${id}/history`);
   }
 
-  private toBackendSort(sortBy?: string): string {
-    return ['title', 'deadline', 'priority', 'status', 'updatedAt'].includes(sortBy ?? '') ? sortBy! : 'updatedAt';
+  private toBackendSort(sortBy?: TaskSortField): TaskSortField {
+    return sortBy && VALID_SORT_FIELDS.includes(sortBy) ? sortBy : 'updatedAt';
   }
 
   private normalizeTask(task: Task): Task {
@@ -84,9 +97,5 @@ export class TaskService {
       dueDate: task.deadline,
       dependencies: task.dependencyIds ?? []
     };
-  }
-
-  private refreshTasks(): void {
-    this.getTasks({ page: 1, pageSize: 25 }).subscribe({ error: () => undefined });
   }
 }

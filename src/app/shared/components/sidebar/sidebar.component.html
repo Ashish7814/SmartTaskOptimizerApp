@@ -1,19 +1,19 @@
 <aside class="sidebar" [class.open]="isOpen">
       <div class="sidebar-overlay" (click)="closeSidebar.emit()" *ngIf="isOpen"></div>
-      
+
       <nav class="sidebar-content">
         <div class="nav-section">
           <h3 class="nav-title">Main</h3>
           <ul class="nav-list">
             <li *ngFor="let item of mainNavItems">
-              <a 
-                [routerLink]="item.route" 
+              <a
+                [routerLink]="item.route"
                 routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: item.route === '/tasks' }"
                 class="nav-link"
                 (click)="onNavClick()">
                 <span [innerHTML]="item.icon"></span>
                 <span>{{ item.label }}</span>
-                <span class="badge" *ngIf="item.badge">{{ item.badge }}</span>
               </a>
             </li>
           </ul>
@@ -23,14 +23,13 @@
           <h3 class="nav-title">Management</h3>
           <ul class="nav-list">
             <li *ngFor="let item of managementNavItems">
-              <a 
-                [routerLink]="item.route" 
+              <a
+                [routerLink]="item.route"
                 routerLinkActive="active"
                 class="nav-link"
                 (click)="onNavClick()">
                 <span [innerHTML]="item.icon"></span>
                 <span>{{ item.label }}</span>
-                <span class="badge" *ngIf="item.badge">{{ item.badge }}</span>
               </a>
             </li>
           </ul>
@@ -39,8 +38,8 @@
         <div class="nav-section mt-auto">
           <ul class="nav-list">
             <li>
-              <a 
-                [routerLink]="'/settings'" 
+              <a
+                [routerLink]="'/settings'"
                 routerLinkActive="active"
                 class="nav-link"
                 (click)="onNavClick()">

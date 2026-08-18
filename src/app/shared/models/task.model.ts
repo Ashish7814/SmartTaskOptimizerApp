@@ -85,18 +85,44 @@ export interface TaskQuery {
   pageSize?: number;
 }
 
+/** Sort fields the backend's TaskRepository.SearchAsync actually understands. */
+export type TaskSortField = 'title' | 'deadline' | 'priority' | 'status' | 'updatedAt';
+
 export interface TaskFilter {
   status?: TaskStatus;
   priority?: Priority;
+  assigneeId?: string;
   tag?: string;
   category?: string;
   searchTerm?: string;
   projectId?: string;
   page?: number;
   pageSize?: number;
-  sortBy?: string;
+  sortBy?: TaskSortField;
   descending?: boolean;
   includeCompleted?: boolean;
+}
+
+/**
+ * Strongly typed model backing the create/edit task form. Kept separate
+ * from CreateTaskDto/UpdateTaskDto because the form always carries every
+ * field (even ones optional on the wire) plus a couple of UI-only fields
+ * (dependency chips are edited as objects, not raw GUID strings).
+ */
+export interface TaskFormModel {
+  title: string;
+  description: string;
+  priority: Priority;
+  status: TaskStatus;
+  estimatedDuration: number;
+  deadline: string;
+  category: string;
+  tags: string[];
+  dependencyIds: string[];
+  projectId: string | null;
+  assigneeId: string | null;
+  rowVersion: string | null;
+  progress: number;
 }
 
 export interface OptimizationResult {
