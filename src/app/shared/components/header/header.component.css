@@ -49,7 +49,7 @@
     }
 
     .logo svg {
-      color: #6366f1;
+      color: var(--accent-500);
     }
 
     .logo span {
@@ -81,8 +81,8 @@
 
     .search-box:focus-within {
       background: white;
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      border-color: var(--accent-500);
+      box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.12);
     }
 
     .search-box svg {
