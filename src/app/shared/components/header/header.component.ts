@@ -14,28 +14,17 @@ import { TaskHubService } from '../../../core/signalr/task-hub.service';
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule
-  ],
+  imports: [CommonModule, RouterModule],
   templateUrl: './header.component.html',
   styleUrl: './header.component.css'
 })
 export class HeaderComponent {
-
-  @Output()
-  toggleSidebar = new EventEmitter<void>();
+  @Output() toggleSidebar = new EventEmitter<void>();
 
   private readonly auth = inject(AuthService);
-  private readonly notifications =
-    inject(NotificationService);
-  private readonly hub =
-    inject(TaskHubService);
+  private readonly notifications = inject(NotificationService);
+  private readonly hub = inject(TaskHubService);
 
-  /*
-   * Because auth is now initialized through inject(),
-   * this property can safely reference auth.session$.
-   */
   readonly session$ = this.auth.session$;
 
   unreadCount = 0;
@@ -43,18 +32,9 @@ export class HeaderComponent {
   constructor() {
     this.loadUnread();
 
-    this.hub.events$.subscribe({
-      next: (event) => {
-        if (event.target === 'notification') {
-          this.unreadCount++;
-        }
-      },
-
-      error: (error: unknown) => {
-        console.error(
-          'TaskHub notification error:',
-          error
-        );
+    this.hub.events$.subscribe((event) => {
+      if (event.target === 'notification') {
+        this.unreadCount++;
       }
     });
   }
@@ -66,12 +46,8 @@ export class HeaderComponent {
         next: (items) => {
           this.unreadCount = items.length;
         },
-
-        error: (error: unknown) => {
-          console.error(
-            'Error loading notifications:',
-            error
-          );
+        error: () => {
+          // Ignore notification loading errors
         }
       });
   }
@@ -83,12 +59,8 @@ export class HeaderComponent {
         next: () => {
           this.unreadCount = 0;
         },
-
-        error: (error: unknown) => {
-          console.error(
-            'Error marking notifications as read:',
-            error
-          );
+        error: () => {
+          // Ignore notification update errors
         }
       });
   }
