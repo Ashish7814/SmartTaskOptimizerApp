@@ -1,3 +1,65 @@
+:root {
+  /* Navy scale used for the app shell (Jira-inspired concept only, no Jira assets) */
+  --navy-900: #0b1d3a;
+  --navy-800: #10254a;
+  --navy-700: #16305e;
+  --navy-600: #1c3a72;
+  --accent-500: #2f6fed;
+  --accent-600: #2558c4;
+
+  /* Neutral scale */
+  --gray-25: #fafbfc;
+  --gray-50: #f5f7fa;
+  --gray-100: #eef1f6;
+  --gray-200: #e2e6ed;
+  --gray-300: #cbd2dc;
+  --gray-400: #9aa5b3;
+  --gray-500: #6b7688;
+  --gray-600: #4d5766;
+  --gray-700: #364052;
+  --gray-800: #232c3d;
+  --gray-900: #131a26;
+
+  /* Semantic status colors */
+  --status-pending-bg: #eef1f6;
+  --status-pending-fg: #4d5766;
+  --status-inprogress-bg: #e5edff;
+  --status-inprogress-fg: #2558c4;
+  --status-completed-bg: #e3f6ea;
+  --status-completed-fg: #1a7f42;
+  --status-onhold-bg: #fff4e0;
+  --status-onhold-fg: #b06a00;
+  --status-cancelled-bg: #fdeaea;
+  --status-cancelled-fg: #c02929;
+
+  /* Semantic priority colors */
+  --priority-low-bg: #eef1f6;
+  --priority-low-fg: #4d5766;
+  --priority-medium-bg: #e5edff;
+  --priority-medium-fg: #2558c4;
+  --priority-high-bg: #fff1e0;
+  --priority-high-fg: #c66a00;
+  --priority-critical-bg: #fdeaea;
+  --priority-critical-fg: #c02929;
+
+  /* Elevation & shape */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.16);
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -10,60 +72,197 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #f5f7fa;
-  color: #1f2937;
+  background: var(--gray-50);
+  color: var(--gray-800);
+  font-size: 14px;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+button, input, select, textarea {
+  font-family: inherit;
 }
 
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+a {
+  color: inherit;
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
+/* Shared form control baseline used across task screens */
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  background: white;
+  color: var(--gray-800);
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent-500);
+  box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.15);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+.form-input.invalid,
+.form-select.invalid,
+.form-textarea.invalid {
+  border-color: var(--status-cancelled-fg);
 }
 
-/* Animation utilities */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+.form-input:disabled,
+.form-select:disabled,
+.form-textarea:disabled {
+  background: var(--gray-100);
+  color: var(--gray-500);
+  cursor: not-allowed;
+}
+
+.field-error {
+  color: var(--status-cancelled-fg);
+  font-size: 0.75rem;
+  margin: 0.25rem 0 0;
+}
+
+.field-hint {
+  color: var(--gray-500);
+  font-size: 0.75rem;
+  margin: 0.25rem 0 0;
+}
+
+/* Shared button system */
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.05s ease;
+}
+
+.btn-primary {
+  background: var(--accent-500);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-600);
+}
+
+.btn-secondary {
+  background: white;
+  border-color: var(--gray-300);
+  color: var(--gray-700);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--gray-100);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gray-600);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--gray-100);
+  color: var(--gray-800);
+}
+
+.btn-danger {
+  background: white;
+  border-color: var(--status-cancelled-fg);
+  color: var(--status-cancelled-fg);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--status-cancelled-bg);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled,
+.btn-danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled),
+.btn-danger:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Status & priority badges (shared visual language) */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.2rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.badge-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.status-pending { background: var(--status-pending-bg); color: var(--status-pending-fg); }
+.status-inprogress { background: var(--status-inprogress-bg); color: var(--status-inprogress-fg); }
+.status-completed { background: var(--status-completed-bg); color: var(--status-completed-fg); }
+.status-onhold { background: var(--status-onhold-bg); color: var(--status-onhold-fg); }
+.status-cancelled { background: var(--status-cancelled-bg); color: var(--status-cancelled-fg); }
+
+.priority-low { background: var(--priority-low-bg); color: var(--priority-low-fg); }
+.priority-medium { background: var(--priority-medium-bg); color: var(--priority-medium-fg); }
+.priority-high { background: var(--priority-high-bg); color: var(--priority-high-fg); }
+.priority-critical { background: var(--priority-critical-bg); color: var(--priority-critical-fg); }
+
+/* Skeleton loading */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--gray-200);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: skeleton-shimmer 1.4s infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+/* Card baseline reused across task screens */
+.surface-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
-
-/* Utility classes */
-.text-center {
-  text-align: center;
-}
-
-.mt-1 { margin-top: 0.25rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 1rem; }
-.mt-4 { margin-top: 1.5rem; }
-
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-3 { margin-bottom: 1rem; }
-.mb-4 { margin-bottom: 1.5rem; }

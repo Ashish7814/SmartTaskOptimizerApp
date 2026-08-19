@@ -1,0 +1,203 @@
+<div class="task-detail-page">
+  <div class="back-link">
+    <a routerLink="/tasks">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to tasks
+    </a>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading task…</p>
+  </div>
+
+  <div *ngIf="loadError" class="error-banner">
+    <span>{{ loadError }}</span>
+    <button type="button" class="btn-secondary" routerLink="/tasks">Back to tasks</button>
+  </div>
+
+  <ng-container *ngIf="!loading && !loadError && task as t">
+    <div class="detail-header surface-card">
+      <div class="detail-header-main">
+        <div class="badge-row">
+          <app-status-badge [status]="t.status"></app-status-badge>
+          <app-priority-badge [priority]="t.priority"></app-priority-badge>
+          <span class="overdue-badge" *ngIf="isOverdue(t)">Overdue</span>
+        </div>
+        <h1>{{ t.title }}</h1>
+        <p class="meta-line">
+          <span *ngIf="t.category">{{ t.category }}</span>
+          <span *ngIf="t.category">·</span>
+          <span>Due {{ formatDateTime(t.deadline) }}</span>
+        </p>
+      </div>
+      <div class="detail-header-actions">
+        <button type="button" class="btn-secondary" [routerLink]="['/tasks', t.id, 'edit']">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          Edit
+        </button>
+        <button type="button" class="btn-danger" (click)="deleteTask()" [disabled]="deleting">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+          </svg>
+          {{ deleting ? 'Deleting…' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="status-actions surface-card" *ngIf="selectableStatuses.length > 0">
+      <span class="status-actions-label">Move to:</span>
+      <button
+        type="button"
+        class="btn-secondary status-action-btn"
+        *ngFor="let status of selectableStatuses"
+        [disabled]="changingStatus"
+        (click)="changeStatus(status)">
+        {{ statusLabel(status) }}
+      </button>
+    </div>
+
+    <div class="detail-layout">
+      <div class="detail-main">
+        <section class="surface-card section-card">
+          <h2>Description</h2>
+          <p class="description-text" *ngIf="t.description; else noDescription">{{ t.description }}</p>
+          <ng-template #noDescription><p class="empty-hint">No description provided.</p></ng-template>
+        </section>
+
+        <section class="surface-card section-card">
+          <h2>Tags</h2>
+          <div class="tags-list" *ngIf="t.tags && t.tags.length > 0; else noTags">
+            <span class="tag" *ngFor="let tag of t.tags">{{ tag }}</span>
+          </div>
+          <ng-template #noTags><p class="empty-hint">No tags.</p></ng-template>
+        </section>
+
+        <section class="surface-card section-card">
+          <h2>Dependencies</h2>
+          <ul class="dependency-list" *ngIf="dependencies.length > 0; else noDeps">
+            <li *ngFor="let dep of dependencies">
+              <a [routerLink]="['/tasks', dep.id]">{{ dep.title ?? ('Unknown task (' + dep.id.slice(0, 8) + '…)') }}</a>
+              <app-status-badge *ngIf="dep.status !== null" [status]="dep.status"></app-status-badge>
+            </li>
+          </ul>
+          <ng-template #noDeps><p class="empty-hint">No dependencies.</p></ng-template>
+        </section>
+
+        <section class="surface-card section-card">
+          <h2>Activity History</h2>
+          <div *ngIf="loadingHistory" class="empty-hint">Loading history…</div>
+          <ul class="history-list" *ngIf="!loadingHistory && history.length > 0; else noHistory">
+            <li *ngFor="let entry of history">
+              <span class="history-date">{{ formatDateTime(entry.changedAt) }}</span>
+              <span>Status changed from <strong>{{ statusLabel(entry.oldStatus) }}</strong> to <strong>{{ statusLabel(entry.newStatus) }}</strong></span>
+            </li>
+          </ul>
+          <ng-template #noHistory><p class="empty-hint" *ngIf="!loadingHistory">No history recorded yet.</p></ng-template>
+        </section>
+
+        <section class="surface-card section-card">
+          <h2>Comments</h2>
+          <div *ngIf="loadingComments" class="empty-hint">Loading comments…</div>
+          <ul class="comment-list" *ngIf="!loadingComments && comments.length > 0">
+            <li *ngFor="let comment of comments" class="comment-item">
+              <app-avatar [name]="comment.authorName" size="sm"></app-avatar>
+              <div class="comment-body">
+                <div class="comment-meta">
+                  <strong>{{ comment.authorName }}</strong>
+                  <span>{{ formatDateTime(comment.createdAt) }}</span>
+                </div>
+                <p>{{ comment.body }}</p>
+              </div>
+              <button
+                type="button"
+                class="icon-btn"
+                *ngIf="comment.authorId === currentUserId"
+                (click)="deleteComment(comment)"
+                aria-label="Delete comment">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </li>
+          </ul>
+          <p class="empty-hint" *ngIf="!loadingComments && comments.length === 0">No comments yet. Start the conversation below.</p>
+
+          <form class="comment-form" (ngSubmit)="postComment($event)">
+            <textarea
+              [(ngModel)]="newCommentBody"
+              name="newComment"
+              rows="3"
+              placeholder="Add a comment…"
+              class="form-textarea"></textarea>
+            <button type="submit" class="btn-primary" [disabled]="postingComment || !newCommentBody.trim()">
+              {{ postingComment ? 'Posting…' : 'Post Comment' }}
+            </button>
+          </form>
+        </section>
+      </div>
+
+      <aside class="detail-sidebar">
+        <section class="surface-card section-card">
+          <h2>Details</h2>
+          <dl class="meta-grid">
+            <dt>Assignee</dt>
+            <dd>
+              <span class="assignee-cell">
+                <app-avatar [name]="t.assigneeName" size="sm"></app-avatar>
+                {{ t.assigneeName ?? 'Unassigned' }}
+              </span>
+            </dd>
+
+            <dt>Project</dt>
+            <dd>{{ projectName ?? 'No project' }}</dd>
+
+            <dt>Category</dt>
+            <dd>{{ t.category ?? '—' }}</dd>
+
+            <dt>Estimated Duration</dt>
+            <dd>{{ t.estimatedDurationMinutes }} min</dd>
+
+            <dt>Deadline</dt>
+            <dd [class.overdue-text]="isOverdue(t)">{{ formatDateTime(t.deadline) }}</dd>
+
+            <dt>Created By</dt>
+            <dd>{{ t.createdByName ?? '—' }}</dd>
+
+            <dt>Created</dt>
+            <dd>{{ formatDateTime(t.createdAt) }}</dd>
+
+            <dt>Last Updated</dt>
+            <dd>{{ formatDateTime(t.updatedAt) }}</dd>
+
+            <ng-container *ngIf="t.startedAt">
+              <dt>Started</dt>
+              <dd>{{ formatDateTime(t.startedAt) }}</dd>
+            </ng-container>
+
+            <ng-container *ngIf="t.completedAt">
+              <dt>Completed</dt>
+              <dd>{{ formatDateTime(t.completedAt) }}</dd>
+            </ng-container>
+          </dl>
+        </section>
+
+        <section class="surface-card section-card">
+          <h2>Progress</h2>
+          <div class="progress-bar-preview">
+            <div class="progress-fill" [style.width.%]="t.progress"></div>
+          </div>
+          <p class="progress-percent">{{ t.progress }}% complete</p>
+        </section>
+      </aside>
+    </div>
+  </ng-container>
+</div>

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { TaskBoardComponent } from './task-board.component';
@@ -13,8 +14,11 @@ describe('TaskBoardComponent', () => {
       of({
         items: [],
         totalCount: 0,
+        totalPages: 0,
         page: 1,
-        pageSize: 100
+        pageSize: 100,
+        hasNextPage: false,
+        hasPreviousPage: false
       }),
 
     updateStatus: () => of(void 0)
@@ -24,6 +28,7 @@ describe('TaskBoardComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TaskBoardComponent],
       providers: [
+        provideRouter([]),
         {
           provide: TaskService,
           useValue: taskServiceMock

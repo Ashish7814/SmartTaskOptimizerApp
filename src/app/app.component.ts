@@ -3,11 +3,13 @@ import { Component, PLATFORM_ID, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './shared/components/header/header.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
+import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { AuthService } from './core/auth/auth.service';
 import { TaskHubService } from './core/signalr/task-hub.service';
+import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [RouterOutlet, CommonModule, HeaderComponent, SidebarComponent],
+  selector: 'app-root', standalone: true, imports: [RouterOutlet, CommonModule, HeaderComponent, SidebarComponent, ToastContainerComponent, ConfirmDialogComponent],
   templateUrl: './app.component.html', styleUrl: './app.component.css'
 })
 export class AppComponent {
