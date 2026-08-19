@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:7115/api',
-  hubUrl: 'https://localhost:7115/hubs/notifications'
+   apiUrl: 'https://smarttask.runasp.net/api',
+  hubUrl: 'https://smarttask.runasp.net/hubs/notifications'
 };
