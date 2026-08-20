@@ -4,6 +4,7 @@ import {
 } from '@angular/common/http';
 
 import { inject } from '@angular/core';
+
 import { Router } from '@angular/router';
 
 import {
@@ -13,6 +14,7 @@ import {
 } from 'rxjs';
 
 import { AuthService } from './auth.service';
+
 import { environment } from '../../environments/environment';
 
 export const tokenInterceptor: HttpInterceptorFn =
@@ -30,15 +32,8 @@ export const tokenInterceptor: HttpInterceptorFn =
       );
 
     /*
-     * Authentication endpoints.
-     *
-     * Do not attach access token to:
-     *
-     * /login
-     * /register
-     * /refresh
-     *
-     * Logout also doesn't require an access token.
+     * Authentication endpoints that should
+     * not receive the Authorization header.
      */
     const isLoginRequest =
       req.url.endsWith('/auth/login');
@@ -59,8 +54,8 @@ export const tokenInterceptor: HttpInterceptorFn =
       isLogoutRequest;
 
     /*
-     * Browser must be allowed to send the
-     * HttpOnly refresh-token cookie.
+     * Always allow the browser to send
+     * the HttpOnly refresh cookie.
      */
     let request =
       req.clone({
@@ -68,15 +63,17 @@ export const tokenInterceptor: HttpInterceptorFn =
       });
 
     /*
-     * Add Authorization header only when:
-     *
-     * - API request
-     * - not login/register/refresh/logout
-     * - access token exists
+     * Get access token from memory.
      */
     const token =
       auth.getToken();
 
+    /*
+     * Add Bearer token to normal API calls.
+     *
+     * Do NOT add it to login/register/
+     * refresh/logout.
+     */
     if (
       isApiRequest &&
       !isAuthRequest &&
@@ -97,8 +94,11 @@ export const tokenInterceptor: HttpInterceptorFn =
         (error: HttpErrorResponse) => {
 
           /*
-           * Only API requests should trigger
-           * token-refresh logic.
+           * Only attempt token refresh for:
+           *
+           * - API request
+           * - 401 response
+           * - non-auth endpoint
            */
           if (
             !isApiRequest ||
@@ -111,38 +111,43 @@ export const tokenInterceptor: HttpInterceptorFn =
           }
 
           /*
-           * Access token is expired/invalid.
+           * Access token has expired.
            *
-           * Ask backend to use the HttpOnly
-           * refresh cookie.
+           * Ask backend to exchange the
+           * HttpOnly refresh cookie for
+           * a new access token.
            */
           return auth.refresh().pipe(
 
-            /*
-             * New access token has now been
-             * stored in AuthService memory.
-             */
-            switchMap(newSession => {
+            switchMap(
+              newSession => {
 
-              const retryToken =
-                newSession.token;
+                /*
+                 * AuthService has already stored
+                 * this token in memory.
+                 */
+                const newToken =
+                  newSession.token;
 
-              const retryRequest =
-                req.clone({
-                  withCredentials: true,
-                  setHeaders: {
-                    Authorization:
-                      `Bearer ${retryToken}`
-                  }
-                });
+                /*
+                 * Retry the ORIGINAL request
+                 * with the new token.
+                 */
+                const retryRequest =
+                  req.clone({
+                    withCredentials: true,
 
-              /*
-               * Retry original request.
-               */
-              return next(
-                retryRequest
-              );
-            }),
+                    setHeaders: {
+                      Authorization:
+                        `Bearer ${newToken}`
+                    }
+                  });
+
+                return next(
+                  retryRequest
+                );
+              }
+            ),
 
             catchError(
               refreshError => {
@@ -150,11 +155,14 @@ export const tokenInterceptor: HttpInterceptorFn =
                 /*
                  * Refresh failed.
                  *
-                 * This means the user must
-                 * authenticate again.
+                 * The refresh token is missing,
+                 * expired, revoked, or invalid.
                  */
                 auth.clearSession();
 
+                /*
+                 * Redirect to login.
+                 */
                 if (
                   !router.url.startsWith(
                     '/login'
