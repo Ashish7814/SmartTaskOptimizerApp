@@ -1,14 +1,21 @@
-import { Injectable } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
   BehaviorSubject,
   Observable,
-  map,
-  tap
+  of,
+  throwError
 } from 'rxjs';
+import {
+  catchError,
+  finalize,
+  map,
+  shareReplay,
+  tap
+} from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
-
 import {
   LoginDto,
   RegisterDto,
@@ -20,7 +27,8 @@ import {
 })
 export class AuthService {
 
-  private accessToken: string | null = null;
+  private readonly browser =
+    isPlatformBrowser(inject(PLATFORM_ID));
 
   private readonly sessionSubject =
     new BehaviorSubject<UserSession | null>(null);
@@ -30,16 +38,69 @@ export class AuthService {
 
   readonly isAuthenticated$ =
     this.session$.pipe(
-      map(session => !!session)
+      map(session =>
+        !!session &&
+        !this.isExpired(session)
+      )
     );
+
+  private readonly initializedSubject =
+    new BehaviorSubject<boolean>(false);
+
+  readonly initialized$ =
+    this.initializedSubject.asObservable();
+
+  private refreshRequest$:
+    Observable<UserSession> | null = null;
 
   constructor(
     private readonly http: HttpClient
   ) {}
 
-  login(
-    dto: LoginDto
-  ): Observable<UserSession> {
+  /**
+   * Called once when Angular starts.
+   *
+   * The refresh token is stored in an HttpOnly cookie,
+   * therefore JavaScript cannot read it.
+   *
+   * We ask the backend to exchange the refresh cookie
+   * for a new access token.
+   */
+  initialize(): Promise<void> {
+
+    if (!this.browser) {
+      this.initializedSubject.next(true);
+      return Promise.resolve();
+    }
+
+    return new Promise(resolve => {
+
+      this.refresh()
+        .pipe(
+          catchError(() => {
+            this.clearSession();
+            return of(null);
+          }),
+          finalize(() => {
+            this.initializedSubject.next(true);
+            resolve();
+          })
+        )
+        .subscribe();
+    });
+  }
+
+  /**
+   * Login.
+   *
+   * Backend returns:
+   * - access token
+   * - user information
+   *
+   * Backend also sets:
+   * - HttpOnly refresh-token cookie
+   */
+  login(dto: LoginDto): Observable<UserSession> {
 
     return this.http
       .post<UserSession>(
@@ -56,16 +117,20 @@ export class AuthService {
       );
   }
 
-  register(
-    dto: RegisterDto
-  ): Observable<string> {
+  register(dto: RegisterDto): Observable<string> {
 
     return this.http.post<string>(
       `${environment.apiUrl}/auth/register`,
-      dto
+      dto,
+      {
+        withCredentials: true
+      }
     );
   }
 
+  /**
+   * Get current authenticated user.
+   */
   me(): Observable<{
     userId: string;
     name: string;
@@ -79,31 +144,86 @@ export class AuthService {
       email: string;
       role: string;
     }>(
-      `${environment.apiUrl}/auth/me`
+      `${environment.apiUrl}/auth/me`,
+      {
+        withCredentials: true
+      }
     );
   }
 
-  refreshToken(): Observable<UserSession> {
+  /**
+   * Refresh access token using the HttpOnly cookie.
+   *
+   * The refresh token is NEVER exposed to JavaScript.
+   */
+  refresh(): Observable<UserSession> {
 
-    return this.http
-      .post<UserSession>(
-        `${environment.apiUrl}/auth/refresh`,
-        {},
-        {
-          withCredentials: true
-        }
-      )
-      .pipe(
-        tap(session => {
-          this.setSession(session);
-        })
-      );
+    /*
+     * If a refresh request is already running,
+     * return the same observable.
+     *
+     * This prevents:
+     *
+     * request 1 -> 401
+     * request 2 -> 401
+     * request 3 -> 401
+     *
+     * from generating three refresh requests.
+     */
+    if (this.refreshRequest$) {
+      return this.refreshRequest$;
+    }
+
+    this.refreshRequest$ =
+      this.http
+        .post<UserSession>(
+          `${environment.apiUrl}/auth/refresh`,
+          {},
+          {
+            withCredentials: true
+          }
+        )
+        .pipe(
+          tap(session => {
+            this.setSession(session);
+          }),
+
+          catchError(error => {
+            this.clearSession();
+
+            return throwError(
+              () => error
+            );
+          }),
+
+          finalize(() => {
+            this.refreshRequest$ = null;
+          }),
+
+          shareReplay({
+            bufferSize: 1,
+            refCount: false
+          })
+        );
+
+    return this.refreshRequest$;
   }
 
-  logout(): Observable<void> {
+  /**
+   * Logout from backend and revoke refresh token.
+   *
+   * The refresh token itself is never accessible here.
+   * Browser automatically sends the HttpOnly cookie.
+   */
+  logout(): void {
 
-    return this.http
-      .post<void>(
+    if (!this.browser) {
+      this.clearSession();
+      return;
+    }
+
+    this.http
+      .post(
         `${environment.apiUrl}/auth/logout`,
         {},
         {
@@ -111,40 +231,112 @@ export class AuthService {
         }
       )
       .pipe(
-        tap(() => {
-          this.clearSession();
+        catchError(error => {
+
+          /*
+           * Even if logout API fails, clear the
+           * local in-memory authentication state.
+           */
+          console.error(
+            'Logout request failed:',
+            error
+          );
+
+          return of(null);
         })
-      );
+      )
+      .subscribe({
+        next: () => {
+          this.clearSession();
+        },
+        error: () => {
+          this.clearSession();
+        }
+      });
   }
 
+  /**
+   * Return current access token from memory.
+   *
+   * IMPORTANT:
+   * This token is NOT stored in localStorage.
+   */
   getToken(): string | null {
-    return this.accessToken;
+
+    const session =
+      this.sessionSubject.value;
+
+    if (!session) {
+      return null;
+    }
+
+    if (this.isExpired(session)) {
+      this.clearSession();
+      return null;
+    }
+
+    return session.token;
   }
 
+  /**
+   * Return current session.
+   */
   getSession(): UserSession | null {
-    return this.sessionSubject.value;
+
+    const session =
+      this.sessionSubject.value;
+
+    if (!session) {
+      return null;
+    }
+
+    if (this.isExpired(session)) {
+      this.clearSession();
+      return null;
+    }
+
+    return session;
   }
 
-  setSession(
-    session: UserSession
-  ): void {
-
-    this.accessToken =
-      session.token;
-
-    this.sessionSubject.next(
-      session
-    );
-  }
-
+  /**
+   * Used by interceptor when refresh fails.
+   *
+   * Do NOT call backend logout here because the refresh
+   * token may already be invalid/revoked.
+   */
   clearSession(): void {
-
-    this.accessToken = null;
-
     this.sessionSubject.next(null);
   }
 
-  isLoggedIn(): boolean {
-    return this.accessToken !== null;
+  private setSession(
+    session: UserSession
+  ): void {
+
+    /*
+     * IMPORTANT:
+     *
+     * Do NOT write the access token to:
+     * localStorage
+     * sessionStorage
+     * cookies
+     *
+     * It stays only in memory.
+     */
+    this.sessionSubject.next(session);
+  }
+
+  private isExpired(
+    session: UserSession
+  ): boolean {
+
+    if (!session.expiresAtUtc) {
+      return true;
+    }
+
+    return (
+      new Date(
+        session.expiresAtUtc
+      ).getTime() <= Date.now()
+    );
   }
 }
