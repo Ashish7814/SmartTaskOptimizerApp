@@ -1,35 +1,17 @@
-import {
-  ApplicationConfig,
-  inject,
-  provideAppInitializer,
-  provideBrowserGlobalErrorListeners,
-  provideZoneChangeDetection
-} from '@angular/core';
+import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 
-import {
-  provideRouter
-} from '@angular/router';
+import { provideRouter } from '@angular/router';
 
-import {
-  provideClientHydration,
-  withEventReplay
-} from '@angular/platform-browser';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
-import {
-  provideHttpClient,
-  withFetch,
-  withInterceptors
-} from '@angular/common/http';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 
 import { routes } from './app.routes';
 
-import {
-  tokenInterceptor
-} from './core/auth/token-interceptor';
+import { tokenInterceptor } from './core/auth/token-interceptor';
 
-import {
-  AuthService
-} from './core/auth/auth.service';
+import { AuthService } from './core/auth/auth.service';
+import { csrfInterceptor } from './core/auth/csrf.interceptor';
 
 import 'zone.js';
 
@@ -55,7 +37,8 @@ export const appConfig: ApplicationConfig = {
       withFetch(),
 
       withInterceptors([
-        tokenInterceptor
+        tokenInterceptor,
+        csrfInterceptor
       ])
     ),
 
