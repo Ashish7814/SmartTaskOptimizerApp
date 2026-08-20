@@ -1,34 +1,28 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import {
-  Injectable,
-  PLATFORM_ID,
-  inject
-} from '@angular/core';
-
+import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-
-import {
-  BehaviorSubject,
-  Observable,
-  of,
-  throwError
-} from 'rxjs';
-
-import {
-  catchError,
-  finalize,
-  map,
-  shareReplay,
-  tap
-} from 'rxjs/operators';
-
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { catchError, finalize, map, shareReplay, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { LoginDto, RegisterDto, UserSession } from '../../shared/models/api.models';
 
-import {
-  LoginDto,
-  RegisterDto,
-  UserSession
-} from '../../shared/models/api.models';
+export interface AuthResponse {
+  token: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  role: string;
+  expiresAtUtc: string;
+}
+
+export interface UserSession {
+  token: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  role: string;
+  expiresAtUtc: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -43,14 +37,11 @@ export class AuthService {
    * - sessionStorage
    * - browser-accessible cookies
    */
-  private readonly sessionSubject =
-    new BehaviorSubject<UserSession | null>(null);
+  private readonly sessionSubject = new BehaviorSubject<UserSession | null>(null);
 
-  readonly session$ =
-    this.sessionSubject.asObservable();
-
-  readonly isAuthenticated$ =
-    this.session$.pipe(
+  readonly session$ = this.sessionSubject.asObservable();
+  
+  readonly isAuthenticated$ = this.session$.pipe(
       map(session =>
         !!session &&
         !this.isExpired(session)
@@ -64,14 +55,11 @@ export class AuthService {
    * false = authentication state is still
    * being restored from refresh cookie.
    */
-  private readonly initializedSubject =
-    new BehaviorSubject<boolean>(false);
+  private readonly initializedSubject = new BehaviorSubject<boolean>(false);
 
-  readonly initialized$ =
-    this.initializedSubject.asObservable();
+  readonly initialized$ = this.initializedSubject.asObservable();
 
-  private readonly browser =
-    isPlatformBrowser(
+  private readonly browser = isPlatformBrowser(
       inject(PLATFORM_ID)
     );
 
@@ -82,8 +70,7 @@ export class AuthService {
    * exactly the same time, only ONE refresh
    * request is sent.
    */
-  private refreshRequest$:
-    Observable<UserSession> | null = null;
+  private refreshRequest$: Observable<UserSession> | null = null;
 
   constructor(
     private readonly http: HttpClient
@@ -164,6 +151,9 @@ export class AuthService {
       .pipe(
         tap(session => {
           this.setSession(session);
+          // Access token is stored ONLY in memory.
+          this.sessionSubject.next(session);
+          return session;
         })
       );
   }
@@ -250,6 +240,10 @@ export class AuthService {
            */
           tap(session => {
             this.setSession(session);
+            // Access token remains memory-only.
+            this.sessionSubject.next(session);
+
+            return session;
           }),
 
           /*
@@ -314,6 +308,9 @@ export class AuthService {
       .pipe(
         catchError(error => {
 
+          tap(() => {
+            this.clearSession();
+          }),
           /*
            * Even if backend logout fails,
            * clear the local access token.
@@ -344,8 +341,7 @@ export class AuthService {
    */
   getToken(): string | null {
 
-    const session =
-      this.sessionSubject.value;
+    const session = this.sessionSubject.value;
 
     if (!session) {
       return null;
@@ -365,8 +361,7 @@ export class AuthService {
    */
   getSession(): UserSession | null {
 
-    const session =
-      this.sessionSubject.value;
+    const session = this.sessionSubject.value;
 
     if (!session) {
       return null;
