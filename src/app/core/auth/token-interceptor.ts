@@ -1,24 +1,19 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import {
+  HttpErrorResponse,
+  HttpInterceptorFn
+} from '@angular/common/http';
+
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 
 import {
-  BehaviorSubject,
   catchError,
-  filter,
-  finalize,
   switchMap,
-  take,
   throwError
 } from 'rxjs';
 
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
-
-let isRefreshing = false;
-
-const refreshTokenSubject =
-  new BehaviorSubject<string | null>(null);
 
 export const tokenInterceptor: HttpInterceptorFn =
   (req, next) => {
@@ -34,170 +29,158 @@ export const tokenInterceptor: HttpInterceptorFn =
         environment.apiUrl
       );
 
-    const isRefreshRequest =
-      req.url.includes(
-        '/auth/refresh'
-      );
-
+    /*
+     * Authentication endpoints.
+     *
+     * Do not attach access token to:
+     *
+     * /login
+     * /register
+     * /refresh
+     *
+     * Logout also doesn't require an access token.
+     */
     const isLoginRequest =
-      req.url.includes(
-        '/auth/login'
-      );
+      req.url.endsWith('/auth/login');
 
     const isRegisterRequest =
-      req.url.includes(
-        '/auth/register'
-      );
+      req.url.endsWith('/auth/register');
+
+    const isRefreshRequest =
+      req.url.endsWith('/auth/refresh');
 
     const isLogoutRequest =
-      req.url.includes(
-        '/auth/logout'
-      );
+      req.url.endsWith('/auth/logout');
 
-    if (!isApiRequest) {
-      return next(req);
-    }
-
-    /*
-     * Never attach the old JWT to refresh/login/register.
-     */
-    if (
-      isRefreshRequest ||
+    const isAuthRequest =
       isLoginRequest ||
       isRegisterRequest ||
-      isLogoutRequest
-    ) {
-      return next(
-        req.clone({
-          withCredentials: true
-        })
-      );
-    }
+      isRefreshRequest ||
+      isLogoutRequest;
 
+    /*
+     * Browser must be allowed to send the
+     * HttpOnly refresh-token cookie.
+     */
+    let request =
+      req.clone({
+        withCredentials: true
+      });
+
+    /*
+     * Add Authorization header only when:
+     *
+     * - API request
+     * - not login/register/refresh/logout
+     * - access token exists
+     */
     const token =
       auth.getToken();
 
-    const authenticatedRequest =
+    if (
+      isApiRequest &&
+      !isAuthRequest &&
       token
-        ? req.clone({
-            withCredentials: true,
-            setHeaders: {
-              Authorization:
-                `Bearer ${token}`
-            }
-          })
-        : req.clone({
-            withCredentials: true
-          });
-
-    return next(
-      authenticatedRequest
-    ).pipe(
-      catchError(error => {
-
-        if (
-          error.status !== 401 ||
-          isRefreshRequest
-        ) {
-          return throwError(
-            () => error
-          );
-        }
-
-        return handle401(
-          authenticatedRequest,
-          next,
-          auth,
-          router
-        );
-      })
-    );
-  };
-
-function handle401(
-  request: any,
-  next: any,
-  auth: AuthService,
-  router: Router
-) {
-  /*
-   * If another request is already refreshing,
-   * wait for that request to finish.
-   */
-  if (isRefreshing) {
-
-    return refreshTokenSubject.pipe(
-      filter(
-        token => token !== null
-      ),
-      take(1),
-      switchMap(token => {
-
-        const retryRequest =
-          request.clone({
-            withCredentials: true,
-            setHeaders: {
-              Authorization:
-                `Bearer ${token}`
-            }
-          });
-
-        return next(
-          retryRequest
-        );
-      })
-    );
-  }
-
-  isRefreshing = true;
-
-  refreshTokenSubject.next(null);
-
-  return auth.refreshToken().pipe(
-
-    switchMap(session => {
-
-      const newToken =
-        session.token;
-
-      refreshTokenSubject.next(
-        newToken
-      );
-
-      const retryRequest =
+    ) {
+      request =
         request.clone({
-          withCredentials: true,
           setHeaders: {
             Authorization:
-              `Bearer ${newToken}`
+              `Bearer ${token}`
           }
         });
+    }
 
-      return next(
-        retryRequest
-      );
-    }),
+    return next(request).pipe(
 
-    catchError(refreshError => {
+      catchError(
+        (error: HttpErrorResponse) => {
 
-      auth.clearSession();
+          /*
+           * Only API requests should trigger
+           * token-refresh logic.
+           */
+          if (
+            !isApiRequest ||
+            isAuthRequest ||
+            error.status !== 401
+          ) {
+            return throwError(
+              () => error
+            );
+          }
 
-      if (
-        !router.url.startsWith('/login') &&
-        !router.url.startsWith('/register')
-      ) {
-        void router.navigate([
-          '/login'
-        ]);
-      }
+          /*
+           * Access token is expired/invalid.
+           *
+           * Ask backend to use the HttpOnly
+           * refresh cookie.
+           */
+          return auth.refresh().pipe(
 
-      return throwError(
-        () => refreshError
-      );
-    }),
+            /*
+             * New access token has now been
+             * stored in AuthService memory.
+             */
+            switchMap(newSession => {
 
-    finalize(() => {
-      isRefreshing = false;
-    })
-  );
-}
+              const retryToken =
+                newSession.token;
+
+              const retryRequest =
+                req.clone({
+                  withCredentials: true,
+                  setHeaders: {
+                    Authorization:
+                      `Bearer ${retryToken}`
+                  }
+                });
+
+              /*
+               * Retry original request.
+               */
+              return next(
+                retryRequest
+              );
+            }),
+
+            catchError(
+              refreshError => {
+
+                /*
+                 * Refresh failed.
+                 *
+                 * This means the user must
+                 * authenticate again.
+                 */
+                auth.clearSession();
+
+                if (
+                  !router.url.startsWith(
+                    '/login'
+                  ) &&
+                  !router.url.startsWith(
+                    '/register'
+                  )
+                ) {
+                  void router.navigate(
+                    ['/login'],
+                    {
+                      queryParams: {
+                        returnUrl:
+                          router.url
+                      }
+                    }
+                  );
+                }
+
+                return throwError(
+                  () => refreshError
+                );
+              }
+            )
+          );
+        }
+      )
+    );
+  };
