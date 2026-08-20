@@ -15,15 +15,6 @@ export interface AuthResponse {
   expiresAtUtc: string;
 }
 
-export interface UserSession {
-  token: string;
-  userId: string;
-  fullName: string;
-  email: string;
-  role: string;
-  expiresAtUtc: string;
-}
-
 @Injectable({
   providedIn: 'root'
 })
