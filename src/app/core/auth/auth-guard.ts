@@ -1,9 +1,11 @@
 import {
+  inject
+} from '@angular/core';
+
+import {
   CanActivateFn,
   Router
 } from '@angular/router';
-
-import { inject } from '@angular/core';
 
 import {
   combineLatest,
@@ -13,6 +15,10 @@ import {
 
 import { AuthService } from './auth.service';
 
+
+/**
+ * Protect authenticated routes.
+ */
 export const authGuard: CanActivateFn = () => {
 
   const auth =
@@ -21,27 +27,40 @@ export const authGuard: CanActivateFn = () => {
   const router =
     inject(Router);
 
+  /*
+   * Wait until AuthService has attempted
+   * to restore the session using the
+   * HttpOnly refresh cookie.
+   */
   return combineLatest([
     auth.initialized$,
     auth.isAuthenticated$
   ]).pipe(
 
-    /*
-     * Do not make a routing decision until
-     * refresh initialization has completed.
-     */
     map(
-      ([initialized, authenticated]) => {
+      ([initialized, isAuthenticated]) => {
 
+        /*
+         * Authentication initialization
+         * hasn't completed yet.
+         */
         if (!initialized) {
           return false;
         }
 
-        return authenticated
-          ? true
-          : router.createUrlTree([
-              '/login'
-            ]);
+        /*
+         * User is authenticated.
+         */
+        if (isAuthenticated) {
+          return true;
+        }
+
+        /*
+         * User is not authenticated.
+         */
+        return router.createUrlTree([
+          '/login'
+        ]);
       }
     ),
 
@@ -50,6 +69,10 @@ export const authGuard: CanActivateFn = () => {
 };
 
 
+/**
+ * Prevent authenticated users from
+ * accessing login/register pages.
+ */
 export const guestGuard: CanActivateFn = () => {
 
   const auth =
@@ -64,17 +87,25 @@ export const guestGuard: CanActivateFn = () => {
   ]).pipe(
 
     map(
-      ([initialized, authenticated]) => {
+      ([initialized, isAuthenticated]) => {
 
         if (!initialized) {
           return false;
         }
 
-        return authenticated
-          ? router.createUrlTree([
-              '/dashboard'
-            ])
-          : true;
+        /*
+         * Already authenticated.
+         */
+        if (isAuthenticated) {
+          return router.createUrlTree([
+            '/dashboard'
+          ]);
+        }
+
+        /*
+         * Guest can access login/register.
+         */
+        return true;
       }
     ),
 
