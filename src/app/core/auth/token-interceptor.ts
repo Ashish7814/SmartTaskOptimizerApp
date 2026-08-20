@@ -1,17 +1,10 @@
-import {
-  HttpErrorResponse,
-  HttpInterceptorFn
-} from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 
 import { inject } from '@angular/core';
 
 import { Router } from '@angular/router';
 
-import {
-  catchError,
-  switchMap,
-  throwError
-} from 'rxjs';
+import { catchError, switchMap, throwError } from 'rxjs';
 
 import { AuthService } from './auth.service';
 
@@ -20,11 +13,9 @@ import { environment } from '../../environments/environment';
 export const tokenInterceptor: HttpInterceptorFn =
   (req, next) => {
 
-    const auth =
-      inject(AuthService);
+    const auth = inject(AuthService);
 
-    const router =
-      inject(Router);
+    const router = inject(Router);
 
     const isApiRequest =
       req.url.startsWith(
@@ -57,16 +48,14 @@ export const tokenInterceptor: HttpInterceptorFn =
      * Always allow the browser to send
      * the HttpOnly refresh cookie.
      */
-    let request =
-      req.clone({
+    let request = req.clone({
         withCredentials: true
       });
 
     /*
      * Get access token from memory.
      */
-    const token =
-      auth.getToken();
+    const token = auth.getToken();
 
     /*
      * Add Bearer token to normal API calls.
@@ -119,15 +108,12 @@ export const tokenInterceptor: HttpInterceptorFn =
            */
           return auth.refresh().pipe(
 
-            switchMap(
-              newSession => {
-
+            switchMap(newSession => {
                 /*
                  * AuthService has already stored
                  * this token in memory.
                  */
-                const newToken =
-                  newSession.token;
+                const newToken = newSession.token;
 
                 /*
                  * Retry the ORIGINAL request
