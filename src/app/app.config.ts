@@ -23,8 +23,13 @@ import {
 
 import { routes } from './app.routes';
 
-import { tokenInterceptor } from './core/auth/token-interceptor';
-import { AuthService } from './core/auth/auth.service';
+import {
+  tokenInterceptor
+} from './core/auth/token-interceptor';
+
+import {
+  AuthService
+} from './core/auth/auth.service';
 
 import 'zone.js';
 
@@ -38,7 +43,9 @@ export const appConfig: ApplicationConfig = {
       eventCoalescing: true
     }),
 
-    provideRouter(routes),
+    provideRouter(
+      routes
+    ),
 
     provideClientHydration(
       withEventReplay()
@@ -46,19 +53,22 @@ export const appConfig: ApplicationConfig = {
 
     provideHttpClient(
       withFetch(),
+
       withInterceptors([
         tokenInterceptor
       ])
     ),
 
     /*
-     * Restore authentication state when
-     * the Angular application starts.
+     * Restore authentication when
+     * Angular starts.
      *
-     * This uses the HttpOnly refresh cookie.
+     * The browser sends the HttpOnly
+     * refresh cookie automatically.
      */
     provideAppInitializer(
       () => {
+
         const auth =
           inject(AuthService);
 
